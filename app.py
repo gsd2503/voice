@@ -1661,7 +1661,7 @@ if __name__ == '__main__':
     print("=" * 50)
     print("\nAccess URLs:")
     print(f"• Main Application: http://localhost:5000")
-    print(f"• Health Check: http://localhost:5000/health")
+    # print(f"• Health Check: http://localhost:5000/health")
     print("\nDefault Login Credentials:")
     print("• Admin: admin / admin123")
     print("• User: testuser / user123")
