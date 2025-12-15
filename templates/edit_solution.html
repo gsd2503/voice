@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <h1><i class="fas fa-city"></i> Voice</h1>
+    <div class="user-info">
+        <span>👤 {{ current_user.full_name }}</span>
+        <span style="font-size: 0.8rem; opacity: 0.9;">(Citizen)</span>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="mobile-tabs">
+    <a href="{{ url_for('dashboard') }}" class="mobile-tab">Home</a>
+    <a href="{{ url_for('report_issue') }}" class="mobile-tab">Report Issue</a>
+    <a href="{{ url_for('my_issues') }}" class="mobile-tab">My Issues</a>
+    <a href="{{ url_for('map_view') }}" class="mobile-tab">Map</a>
+    <a href="{{ url_for('profile') }}" class="mobile-tab">Profile</a>
+    <a href="{{ url_for('logout') }}" class="mobile-tab">Logout</a>
+</div>
+
+<!-- Main Card -->
+<div class="mobile-card">
+    <h3><i class="fas fa-edit"></i> Edit Solution</h3>
+    <p>Update your proposed solution.</p>
+</div>
+
+<!-- Solution Details -->
+<div class="mobile-card">
+    <div class="row">
+        <div class="col-md-9">
+            <h6>For Issue: {{ solution.issue.title }}</h6>
+            <p class="text-muted mb-2">
+                <i class="fas fa-map-marker-alt"></i> {{ solution.issue.location }}
+            </p>
+            <div class="d-flex gap-2">
+                <span class="badge bg-info">
+                    <i class="fas fa-thumbs-up"></i> {{ solution.upvotes }} upvotes
+                </span>
+                <span class="badge bg-secondary">
+                    <i class="fas fa-thumbs-down"></i> {{ solution.downvotes }} downvotes
+                </span>
+                {% if solution.is_accepted %}
+                <span class="badge bg-success">
+                    <i class="fas fa-check-circle"></i> Accepted
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-3 text-end">
+            <small class="text-muted">
+                Created: {{ solution.created_at.strftime('%Y-%m-%d') }}
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Form -->
+<div class="mobile-card">
+    <form method="POST" action="{{ url_for('edit_solution', solution_id=solution.id) }}">
+        <div class="form-group mb-4">
+            <label class="form-label">Solution Description *</label>
+            <textarea class="form-control" name="description" rows="8" required>{{ solution.description }}</textarea>
+            <small class="form-text text-muted">
+                Minimum 10 characters. Make sure your solution is clear and practical.
+            </small>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-save"></i> Update Solution
+                </button>
+            </div>
+            <div class="col-md-6">
+                <a href="{{ url_for('view_solutions', issue_id=solution.issue_id) }}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Delete Option -->
+{% if current_user.role == 'admin' or solution.user_id == current_user.id %}
+<div class="mobile-card">
+    <h5><i class="fas fa-exclamation-triangle text-danger"></i> Danger Zone</h5>
+    <div class="alert alert-danger">
+        <h6>Delete Solution</h6>
+        <p class="mb-2">Once deleted, this solution cannot be recovered. All votes will be lost.</p>
+        <form method="POST" action="{{ url_for('delete_solution', solution_id=solution.id) }}"
+              onsubmit="return confirm('Are you sure you want to delete this solution? This action cannot be undone.');">
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Delete Solution Permanently
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

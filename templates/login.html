@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-header">
+        <h2><i class="fas fa-city"></i> Voice</h2>
+        <p>Public Issues Reporter</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('login') }}" class="auth-form">
+        <div class="form-group">
+            <input type="text" name="username" placeholder="Enter username or email" required>
+        </div>
+
+        <div class="form-group">
+            <input type="password" name="password" placeholder="Enter password" required>
+        </div>
+
+        <button type="submit" class="auth-button">
+            <i class="fas fa-lock"></i> Login
+        </button>
+
+        <div style="margin-top: 1rem;">
+            <p style="color: #666; font-size: 0.9rem;">
+                Don't have an account?
+                <a href="{{ url_for('register') }}" style="color: #667eea; text-decoration: none;">
+                    Register here
+                </a>
+            </p>
+        </div>
+    </form>
+
+    <div style="margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 10px;">
+        <p style="margin: 0; font-size: 0.9rem; color: #666;">
+            <strong>Demo Credentials:</strong><br>
+            👑 Admin: admin / admin123<br>
+            👤 User 1: testuser / user123<br>
+            👤 User 2: testuser2 / user123
+        </p>
+    </div>
+</div>
+{% endblock %}

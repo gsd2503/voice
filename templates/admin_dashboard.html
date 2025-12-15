@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <h1><i class="fas fa-city"></i> Voice</h1>
+    <div class="user-info">
+        <span>👤 {{ current_user.full_name }}</span>
+        <span style="font-size: 0.8rem; opacity: 0.9;">(Administrator)</span>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="mobile-tabs">
+    <a href="{{ url_for('admin_dashboard') }}" class="mobile-tab active">Dashboard</a>
+    <a href="{{ url_for('admin_issues') }}" class="mobile-tab">Issues</a>
+    <a href="{{ url_for('admin_analytics') }}" class="mobile-tab">Analytics</a>
+    <a href="{{ url_for('admin_users') }}" class="mobile-tab">Users</a>
+    <a href="{{ url_for('admin_feedback') }}" class="mobile-tab">Feedback</a>
+    <a href="{{ url_for('profile') }}" class="mobile-tab">Profile</a>
+    <a href="{{ url_for('logout') }}" class="mobile-tab">Logout</a>
+</div>
+
+<!-- Welcome Card -->
+<div class="mobile-card">
+    <h3><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h3>
+    <p>Overview of system statistics and recent activity.</p>
+</div>
+
+<!-- System Statistics -->
+<div class="mobile-card">
+    <h3><i class="fas fa-chart-pie"></i> System Statistics</h3>
+    <div class="row mt-3">
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h1 class="card-title">{{ stats.total_issues }}</h1>
+                    <p class="card-text">Total Issues</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h1 class="card-title">{{ stats.total_users }}</h1>
+                    <p class="card-text">Total Users</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h1 class="card-title">{{ stats.recent_issues }}</h1>
+                    <p class="card-text">Recent Issues</p>
+                    <small class="text-muted">(7 days)</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h1 class="card-title">{{ stats.status_counts.done if stats.status_counts.done is defined else 0 }}</h1>
+                    <p class="card-text">Resolved</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Issues by Status -->
+<div class="mobile-card">
+    <h3><i class="fas fa-chart-bar"></i> Issues by Status</h3>
+    <div class="row mt-3">
+        {% for status_key, count in stats.status_counts.items() %}
+        <div class="col-md-3 mb-2">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-8">
+                            <h6>{{ ISSUE_STATUSES[status_key].name }}</h6>
+                            <p class="mb-0">{{ count }} issues</p>
+                        </div>
+                        <div class="col-4 text-end">
+                            <span class="status-badge {{ ISSUE_STATUSES[status_key].badge_class }}">
+                                {{ count }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Recent Issues -->
+<div class="mobile-card">
+    <h3><i class="fas fa-clock"></i> Recent Issues</h3>
+
+    {% if recent_issues %}
+    <div class="table-responsive mt-3">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for issue in recent_issues %}
+                <tr>
+                    <td>
+                        <strong>{{ issue.title }}</strong><br>
+                        <small class="text-muted">{{ issue.location }}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-info">
+                            {{ SERVICE_TYPES[issue.service_type].icon }}
+                            {{ SERVICE_TYPES[issue.service_type].name }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge {{ ISSUE_STATUSES[issue.status].badge_class }}">
+                            {{ ISSUE_STATUSES[issue.status].name }}
+                        </span>
+                    </td>
+                    <td>{{ issue.date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewIssue('{{ issue.id }}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="editIssue('{{ issue.id }}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info mt-3">
+        <i class="fas fa-info-circle"></i> No recent issues found.
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="mobile-card">
+    <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+    <div class="row mt-3">
+        <div class="col-md-3 mb-2">
+            <a href="{{ url_for('admin_issues') }}" class="btn btn-primary w-100">
+                <i class="fas fa-tasks"></i> Manage Issues
+            </a>
+        </div>
+        <div class="col-md-3 mb-2">
+            <a href="{{ url_for('admin_analytics') }}" class="btn btn-info w-100">
+                <i class="fas fa-chart-line"></i> Analytics
+            </a>
+        </div>
+        <div class="col-md-3 mb-2">
+            <a href="{{ url_for('admin_users') }}" class="btn btn-success w-100">
+                <i class="fas fa-users"></i> Manage Users
+            </a>
+        </div>
+        <div class="col-md-3 mb-2">
+            <a href="{{ url_for('admin_feedback') }}" class="btn btn-warning w-100">
+                <i class="fas fa-star"></i> View Feedback
+            </a>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-md-4 mb-2">
+            <button class="btn btn-outline-secondary w-100" onclick="exportData()">
+                <i class="fas fa-download"></i> Export Data
+            </button>
+        </div>
+        <div class="col-md-4 mb-2">
+            <button class="btn btn-outline-dark w-100" onclick="generateReport()">
+                <i class="fas fa-file-alt"></i> Generate Report
+            </button>
+        </div>
+        <div class="col-md-4 mb-2">
+            <button class="btn btn-outline-info w-100" onclick="createTestIssue()">
+                <i class="fas fa-plus-circle"></i> Test Issue
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- System Info -->
+<div class="mobile-card">
+    <h3><i class="fas fa-info-circle"></i> System Information</h3>
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6><i class="fas fa-database"></i> Database</h6>
+                    <p class="mb-1"><strong>Total Records:</strong> {{ stats.total_issues + stats.total_users }}</p>
+                    <p class="mb-0"><strong>Last Updated:</strong> {{ now.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6><i class="fas fa-server"></i> Performance</h6>
+                    <p class="mb-1"><strong>Issues Today:</strong> {{ stats.recent_issues }}</p>
+                    <p class="mb-0"><strong>Active Users:</strong> {{ stats.total_users }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="mobile-card">
+    <h3><i class="fas fa-history"></i> Recent Activity</h3>
+    <div class="mt-3">
+        <ul class="list-group">
+            <li class="list-group-item">
+                <i class="fas fa-sign-in-alt text-primary"></i>
+                You logged in at {{ now.strftime('%H:%M') }}
+            </li>
+            <li class="list-group-item">
+                <i class="fas fa-users text-success"></i>
+                {{ stats.total_users }} registered users in system
+            </li>
+            <li class="list-group-item">
+                <i class="fas fa-flag text-info"></i>
+                {{ stats.total_issues }} total issues reported
+            </li>
+            <li class="list-group-item">
+                <i class="fas fa-check-circle text-success"></i>
+                {{ stats.status_counts.done if stats.status_counts.done is defined else 0 }} issues resolved
+            </li>
+            {% if stats.recent_issues > 0 %}
+            <li class="list-group-item">
+                <i class="fas fa-bell text-warning"></i>
+                {{ stats.recent_issues }} new issues in last 7 days
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="mobile-card">
+    <h3><i class="fas fa-chart-bar"></i> Quick Stats</h3>
+    <div class="row mt-3">
+        <div class="col-md-4 mb-3">
+            <div class="admin-stat-card">
+                <div class="admin-stat-value">{{ stats.service_counts.road if stats.service_counts.road is defined else 0 }}</div>
+                <div class="admin-stat-label">🛣️ Road Issues</div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="admin-stat-card">
+                <div class="admin-stat-value">{{ stats.service_counts.electricity if stats.service_counts.electricity is defined else 0 }}</div>
+                <div class="admin-stat-label">💡 Electricity Issues</div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="admin-stat-card">
+                <div class="admin-stat-value">{{ stats.service_counts.garbage if stats.service_counts.garbage is defined else 0 }}</div>
+                <div class="admin-stat-label">🗑️ Garbage Issues</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Tips -->
+<div class="mobile-card">
+    <h3><i class="fas fa-lightbulb"></i> Admin Tips</h3>
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-check-circle"></i> Best Practices</h6>
+                <ul class="mb-0" style="font-size: 0.9rem;">
+                    <li>Respond to issues within 24 hours</li>
+                    <li>Update status regularly</li>
+                    <li>Review feedback weekly</li>
+                    <li>Monitor high-priority issues</li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="alert alert-warning">
+                <h6><i class="fas fa-exclamation-triangle"></i> Attention Needed</h6>
+                <ul class="mb-0" style="font-size: 0.9rem;">
+                    <li>Check pending issues daily</li>
+                    <li>Review user feedback</li>
+                    <li>Monitor system performance</li>
+                    <li>Update admin notes regularly</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewIssue(issueId) {
+    // In a real implementation, this would navigate to issue details
+    window.location.href = '/admin/issues?view=' + issueId;
+}
+
+function editIssue(issueId) {
+    // In a real implementation, this would open an edit modal
+    window.location.href = '/admin/issues?edit=' + issueId;
+}
+
+function exportData() {
+    alert('Exporting system data... This would generate a CSV/Excel file.');
+    // This would trigger a download of system data
+}
+
+function generateReport() {
+    alert('Generating report... This would create a PDF report.');
+    // This would generate a printable report
+}
+
+function createTestIssue() {
+    if (confirm('Create a test issue for demonstration?')) {
+        alert('Creating test issue... This would create a sample issue for testing.');
+        // In a real implementation, this would create a test issue via AJAX
+    }
+}
+
+// Auto-refresh dashboard every 30 seconds
+setTimeout(function() {
+    // Uncomment to enable auto-refresh
+    // location.reload();
+}, 30000);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(event) {
+    // Ctrl + I for Issues
+    if (event.ctrlKey && event.key === 'i') {
+        event.preventDefault();
+        window.location.href = "{{ url_for('admin_issues') }}";
+    }
+    // Ctrl + A for Analytics
+    if (event.ctrlKey && event.key === 'a') {
+        event.preventDefault();
+        window.location.href = "{{ url_for('admin_analytics') }}";
+    }
+    // Ctrl + U for Users
+    if (event.ctrlKey && event.key === 'u') {
+        event.preventDefault();
+        window.location.href = "{{ url_for('admin_users') }}";
+    }
+    // Ctrl + F for Feedback
+    if (event.ctrlKey && event.key === 'f') {
+        event.preventDefault();
+        window.location.href = "{{ url_for('admin_feedback') }}";
+    }
+});
+
+// Quick status update from dashboard
+async function quickUpdateStatus() {
+    const issueId = document.getElementById('quickIssueSelect').value;
+    const newStatus = document.getElementById('quickStatusSelect').value;
+
+    if (!issueId || !newStatus) {
+        alert('Please select both an issue and a status');
+        return;
+    }
+
+    if (!confirm(`Update issue status to "${getStatusName(newStatus)}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch("/admin/update-issue-status/" + issueId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'status=' + newStatus
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('Status updated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Network error: ' + error.message);
+    }
+}
+
+// Change status for single issue (same as admin_issues.html)
+async function changeStatus(issueId, newStatus) {
+    if (!isValidUUID(issueId)) {
+        alert('Invalid issue ID');
+        return;
+    }
+
+    if (!confirm(`Change status of this issue to "${getStatusName(newStatus)}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch("/admin/update-issue-status/" + issueId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'status=' + newStatus
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('Status updated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Network error: ' + error.message);
+    }
+}
+
+// Helper functions
+function isValidUUID(id) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id);
+}
+
+function getStatusName(statusKey) {
+    const statusMap = {
+        'pending': 'Pending',
+        'in_progress': 'In Progress',
+        'done': 'Resolved',
+        'on_hold': 'On Hold',
+        'cancelled': 'Cancelled'
+    };
+    return statusMap[statusKey] || statusKey;
+}
+
+</script>
+{% endblock %}

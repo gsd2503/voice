@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="auth-container" style="max-width: 100%; margin: 1rem auto;">
+    <div class="auth-header">
+        <h1 style="font-size: 2.5rem; color: #667eea;">
+            <i class="fas fa-city"></i> Voice
+        </h1>
+        <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">
+            Public Issues Reporter - Empowering Citizens, Transforming Communities
+        </p>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="row text-center mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h3>🏛️</h3>
+                    <h5>Report Issues</h5>
+                    <p class="text-muted">Make your voice heard</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h3>💡</h3>
+                    <h5>Suggest Solutions</h5>
+                    <p class="text-muted">Propose practical fixes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h3>🗺️</h3>
+                    <h5>Interactive Map</h5>
+                    <p class="text-muted">View issues visually</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h3>👥</h3>
+                    <h5>Community</h5>
+                    <p class="text-muted">Collaborate with others</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="text-center mb-4">
+        {% if current_user.is_authenticated %}
+            <h3>Welcome back, {{ current_user.full_name }}!</h3>
+            <p class="text-muted mb-4">Ready to continue making a difference in your community?</p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="{{ url_for('report_issue') }}" class="btn btn-success btn-lg w-100">
+                        <i class="fas fa-plus-circle"></i> Report New Issue
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            <h3>Join thousands of citizens making a difference</h3>
+            <p class="text-muted mb-4">Report civic issues, suggest solutions, track resolutions, and help improve your community.</p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="{{ url_for('register') }}" class="btn btn-success btn-lg w-100">
+                        <i class="fas fa-user-plus"></i> Register
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Features Section -->
+    <div class="mt-5">
+        <h3 class="text-center mb-4">🌟 Why Choose Voice?</h3>
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="service-icon" style="font-size: 2.5rem; color: #667eea;">
+                            <i class="fas fa-bullhorn"></i>
+                        </div>
+                        <h5>Voice Your Concerns</h5>
+                        <p>Report road issues, garbage problems, electricity outages, and other civic matters directly to authorities.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="service-icon" style="font-size: 2.5rem; color: #667eea;">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <h5>Suggest Solutions</h5>
+                        <p>Propose practical solutions for issues and vote on the best ideas from the community.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="service-icon" style="font-size: 2.5rem; color: #667eea;">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h5>Track Progress</h5>
+                        <p>Monitor the status of your reported issues from submission to resolution with real-time updates.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="mt-5">
+        <h3 class="text-center mb-4">📋 How It Works</h3>
+        <div class="row text-center">
+            <div class="col-md-3 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; margin-bottom: 1rem;">
+                            <h4 class="mb-0">1</h4>
+                        </div>
+                        <h5>Sign Up</h5>
+                        <p>Create your free account in seconds</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; margin-bottom: 1rem;">
+                            <h4 class="mb-0">2</h4>
+                        </div>
+                        <h5>Report Issue</h5>
+                        <p>Submit details with photos if available</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; margin-bottom: 1rem;">
+                            <h4 class="mb-0">3</h4>
+                        </div>
+                        <h5>Suggest Solutions</h5>
+                        <p>Propose fixes and vote on best ideas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; margin-bottom: 1rem;">
+                            <h4 class="mb-0">4</h4>
+                        </div>
+                        <h5>Resolution</h5>
+                        <p>Get notified when issue is resolved</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Issue Types -->
+    <div class="mt-5">
+        <h3 class="text-center mb-4">🔧 Common Issue Types</h3>
+        <div class="row">
+            {% for service_key, service_info in SERVICE_TYPES.items() %}
+            <div class="col-md-2 col-6 mb-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="service-icon" style="font-size: 2rem;">
+                            {{ service_info.icon }}
+                        </div>
+                        <h6 class="mt-2">{{ service_info.name }}</h6>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Demo Section -->
+    <div class="mt-5">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <h4>🚀 Try Demo Accounts</h4>
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5>👑 Admin Account</h5>
+                                <p class="mb-1"><strong>Username:</strong> admin</p>
+                                <p class="mb-0"><strong>Password:</strong> admin123</p>
+                                <small class="text-muted">Full system access</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5>👤 User Account 1</h5>
+                                <p class="mb-1"><strong>Username:</strong> testuser</p>
+                                <p class="mb-0"><strong>Password:</strong> user123</p>
+                                <small class="text-muted">Citizen access</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5>👤 User Account 2</h5>
+                                <p class="mb-1"><strong>Username:</strong> john_doe</p>
+                                <p class="mb-0"><strong>Password:</strong> john123</p>
+                                <small class="text-muted">Citizen access</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <a href="{{ url_for('login') }}" class="btn btn-outline-primary mt-2">
+                    <i class="fas fa-rocket"></i> Try Demo Now
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Section -->
+    <div class="mt-5 text-center">
+        <hr>
+        <p class="text-muted">
+            <i class="fas fa-shield-alt"></i> Your data is secure and private
+        </p>
+        <p class="text-muted">
+            <small>
+                Voice is a platform for citizens to report and track civic issues.
+                <br>
+                © {{ now.year }} Voice. All rights reserved.
+            </small>
+        </p>
+        <div class="mt-3">
+            <a href="#" class="text-muted mx-2"><i class="fas fa-question-circle"></i> Help</a>
+            <a href="#" class="text-muted mx-2"><i class="fas fa-file-alt"></i> Terms</a>
+            <a href="#" class="text-muted mx-2"><i class="fas fa-lock"></i> Privacy</a>
+            <a href="#" class="text-muted mx-2"><i class="fas fa-envelope"></i> Contact</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.hero-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4rem 0;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+}
+
+.feature-card {
+    transition: transform 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.step-number {
+    width: 50px;
+    height: 50px;
+    background: #667eea;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .auth-container {
+        margin: 0.5rem;
+        padding: 1rem;
+    }
+    
+    h1 {
+        font-size: 2rem !important;
+    }
+    
+    .col-md-4 {
+        margin-bottom: 1rem;
+    }
+}
+</style>
+{% endblock %}

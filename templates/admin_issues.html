@@ -1,0 +1,674 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <h1><i class="fas fa-city"></i> Voice</h1>
+    <div class="user-info">
+        <span>👤 {{ current_user.full_name }}</span>
+        <span style="font-size: 0.8rem; opacity: 0.9;">(Administrator)</span>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="mobile-tabs">
+    <a href="{{ url_for('admin_dashboard') }}" class="mobile-tab">Dashboard</a>
+    <a href="{{ url_for('admin_issues') }}" class="mobile-tab active">Issues</a>
+    <a href="{{ url_for('admin_analytics') }}" class="mobile-tab">Analytics</a>
+    <a href="{{ url_for('admin_users') }}" class="mobile-tab">Users</a>
+    <a href="{{ url_for('profile') }}" class="mobile-tab">Profile</a>
+    <a href="{{ url_for('logout') }}" class="mobile-tab">Logout</a>
+</div>
+
+<!-- Main Card -->
+<div class="mobile-card">
+    <h3><i class="fas fa-tasks"></i> Issues Management</h3>
+    <p>Manage and filter all reported issues.</p>
+</div>
+
+<!-- Advanced Filters -->
+<div class="mobile-card">
+    <h5><i class="fas fa-filter"></i> Advanced Filters</h5>
+    <form method="GET" action="{{ url_for('admin_issues') }}" class="row g-3">
+        <!-- Removed CSRF token -->
+        <div class="col-md-6">
+            <label class="form-label">Service Type</label>
+            <select class="form-control" name="service_type">
+                <option value="all">All Types</option>
+                {% for service_key, service_info in SERVICE_TYPES.items() %}
+                <option value="{{ service_key }}" {% if request.args.get('service_type') == service_key %}selected{% endif %}>
+                    {{ service_info.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Priority</label>
+            <select class="form-control" name="priority">
+                <option value="all">All Priorities</option>
+                {% for priority_key, priority_info in PRIORITY_LEVELS.items() %}
+                <option value="{{ priority_key }}" {% if request.args.get('priority') == priority_key %}selected{% endif %}>
+                    {{ priority_info.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Status</label>
+            <select class="form-control" name="status">
+                <option value="all">All Statuses</option>
+                {% for status_key, status_info in ISSUE_STATUSES.items() %}
+                <option value="{{ status_key }}" {% if request.args.get('status') == status_key %}selected{% endif %}>
+                    {{ status_info.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Time Period</label>
+            <select class="form-control" name="date_filter">
+                <option value="all" {% if request.args.get('date_filter') == 'all' %}selected{% endif %}>All time</option>
+                <option value="today" {% if request.args.get('date_filter') == 'today' %}selected{% endif %}>Today</option>
+                <option value="7d" {% if request.args.get('date_filter') == '7d' %}selected{% endif %}>Last 7 days</option>
+                <option value="30d" {% if request.args.get('date_filter') == '30d' %}selected{% endif %}>Last 30 days</option>
+            </select>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-search"></i> Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Bulk Actions -->
+<div class="mobile-card">
+    <h5><i class="fas fa-cogs"></i> Bulk Actions</h5>
+    <div class="row g-2">
+        <div class="col-md-6">
+            <button class="btn btn-outline-primary w-100" onclick="exportCSV()">
+                <i class="fas fa-download"></i> Export CSV
+            </button>
+        </div>
+        <div class="col-md-6">
+            <button class="btn btn-outline-secondary w-100" onclick="printReport()">
+                <i class="fas fa-print"></i> Print Report
+            </button>
+        </div>
+    </div>
+    <div class="row g-2 mt-2">
+        <div class="col-md-12">
+            <a href="{{ url_for('admin_issues') }}" class="btn btn-outline-info w-100">
+                <i class="fas fa-sync-alt"></i> Clear Filters & Refresh
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Issues Table -->
+<div class="mobile-card">
+    <h5>Found {{ issues|length }} issues</h5>
+
+    <!-- Search Box -->
+    <div class="input-group mb-3">
+        <input type="text" class="form-control" placeholder="Search issues by title, location, or reporter..." id="searchInput">
+        <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="text-center d-none">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Updating status...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050; margin-top: 70px;">
+        <div id="toast" class="toast align-items-center text-white border-0 d-none" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    {% if issues %}
+    <div class="table-responsive mt-3">
+        <table class="table table-hover" id="issuesTable">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">
+                        <input type="checkbox" id="selectAll">
+                    </th>
+                    <th>Title</th>
+                    <th>Reporter</th>
+                    <th>Type</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for issue in issues %}
+                <tr data-issue-id="{{ issue.id }}">
+                    <td>
+                        <input type="checkbox" class="issue-checkbox" value="{{ issue.id }}">
+                    </td>
+                    <td>
+                        <strong class="issue-title">{{ issue.title }}</strong><br>
+                        <small class="text-muted issue-location">{{ issue.location|truncate(30) }}</small>
+                    </td>
+                    <td>
+                        {% if issue.reporter %}
+                        <span class="reporter-name">{{ issue.reporter.full_name }}</span><br>
+                        <small class="text-muted reporter-username">@{{ issue.reporter.username }}</small>
+                        {% else %}
+                        <span class="text-muted">Unknown</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set service_info = SERVICE_TYPES.get(issue.service_type, {'name': issue.service_type, 'badge_class': 'bg-secondary'}) %}
+                        <span class="badge {{ service_info.badge_class|default('bg-secondary') }}">
+                            <i class="{{ service_info.icon_class|default('fas fa-question-circle') }}"></i>
+                            {{ service_info.name }}
+                        </span>
+                    </td>
+                    <td>
+                        {% set priority_info = PRIORITY_LEVELS.get(issue.priority, {'name': issue.priority, 'badge_class': 'bg-secondary'}) %}
+                        <span class="badge {{ priority_info.badge_class|default('bg-secondary') }} priority-badge">
+                            {{ priority_info.name }}
+                        </span>
+                    </td>
+                    <td>
+                        {% set status_info = ISSUE_STATUSES.get(issue.status, {'name': issue.status, 'badge_class': 'bg-secondary'}) %}
+                        <span class="badge {{ status_info.badge_class|default('bg-secondary') }} status-badge" data-status="{{ issue.status }}">
+                            {{ status_info.name }}
+                        </span>
+                    </td>
+                    <td class="issue-date">{{ issue.date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="viewIssue('{{ issue.id }}')" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-info dropdown-toggle" type="button"
+                                    data-bs-toggle="dropdown" aria-expanded="false" title="More Actions">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><h6 class="dropdown-header">Change Status</h6></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeStatus('{{ issue.id }}', 'pending')">
+                                    <i class="fas fa-clock text-warning"></i> Set to Pending
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeStatus('{{ issue.id }}', 'in_progress')">
+                                    <i class="fas fa-spinner text-primary"></i> Set to In Progress
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeStatus('{{ issue.id }}', 'done')">
+                                    <i class="fas fa-check text-success"></i> Set to Resolved
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeStatus('{{ issue.id }}', 'on_hold')">
+                                    <i class="fas fa-pause text-secondary"></i> Set to On Hold
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="changeStatus('{{ issue.id }}', 'cancelled')">
+                                    <i class="fas fa-ban text-danger"></i> Set to Cancelled
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('view_solutions', issue_id=issue.id) }}">
+                                    <i class="fas fa-lightbulb text-warning"></i> View Solutions
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteIssue('{{ issue.id }}')">
+                                    <i class="fas fa-trash"></i> Delete Issue
+                                </a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <div class="text-muted">
+            Showing {{ issues|length }} issues
+        </div>
+        <div>
+            <button class="btn btn-outline-secondary btn-sm" onclick="scrollToTop()">
+                <i class="fas fa-arrow-up"></i> Back to Top
+            </button>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="alert alert-info mt-3">
+        <i class="fas fa-info-circle"></i> No issues found matching your criteria.
+    </div>
+    {% endif %}
+</div>
+
+<!-- Bulk Status Update -->
+<div class="mobile-card">
+    <h5><i class="fas fa-exchange-alt"></i> Bulk Status Update</h5>
+    <p class="text-muted small">Select issues using checkboxes above, then choose status and apply.</p>
+
+    <div class="row g-3 mt-3">
+        <div class="col-md-8">
+            <select class="form-control" id="bulkStatus">
+                <option value="">-- Select Status --</option>
+                {% for status_key, status_info in ISSUE_STATUSES.items() %}
+                <option value="{{ status_key }}">{{ status_info.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-primary w-100" onclick="applyBulkStatus()" id="bulkStatusBtn">
+                <i class="fas fa-check"></i> Apply to Selected
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <button class="btn btn-outline-secondary w-100" onclick="deselectAll()">
+            <i class="fas fa-times"></i> Deselect All
+        </button>
+    </div>
+</div>
+
+<!-- Selected Counter -->
+<div class="mobile-card bg-light">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <span id="selectedCount">0</span> issue(s) selected
+        </div>
+        <div>
+            <button class="btn btn-sm btn-outline-primary" onclick="selectAllRows()">
+                <i class="fas fa-check-square"></i> Select All
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Toast notification system
+function showToast(type, message) {
+    const toastEl = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+
+    // Remove previous color classes
+    toastEl.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'bg-info');
+
+    // Set color based on type
+    switch(type) {
+        case 'success':
+            toastEl.classList.add('bg-success');
+            break;
+        case 'error':
+            toastEl.classList.add('bg-danger');
+            break;
+        case 'warning':
+            toastEl.classList.add('bg-warning');
+            break;
+        case 'info':
+            toastEl.classList.add('bg-info');
+            break;
+    }
+
+    toastMessage.textContent = message;
+    toastEl.classList.remove('d-none');
+
+    // Initialize and show toast
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+
+// Show loading indicator
+function showLoading(show) {
+    const loader = document.getElementById('loadingIndicator');
+    if (show) {
+        loader.classList.remove('d-none');
+    } else {
+        loader.classList.add('d-none');
+    }
+}
+
+// Update selected count
+function updateSelectedCount() {
+    const selected = document.querySelectorAll('.issue-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = selected;
+
+    // Enable/disable bulk status button
+    const bulkBtn = document.getElementById('bulkStatusBtn');
+    bulkBtn.disabled = selected === 0;
+}
+
+// Select all checkboxes
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.issue-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    updateSelectedCount();
+});
+
+// Update count when individual checkboxes change
+document.querySelectorAll('.issue-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateSelectedCount);
+});
+
+// Select all rows
+function selectAllRows() {
+    document.querySelectorAll('.issue-checkbox').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    document.getElementById('selectAll').checked = true;
+    updateSelectedCount();
+}
+
+// Deselect all
+function deselectAll() {
+    document.querySelectorAll('.issue-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('selectAll').checked = false;
+    updateSelectedCount();
+}
+
+// Export CSV
+function exportCSV() {
+    const selectedIssues = Array.from(document.querySelectorAll('.issue-checkbox:checked'))
+                                .map(cb => cb.value);
+
+    if (selectedIssues.length === 0) {
+        showToast('warning', 'Please select at least one issue to export');
+        return;
+    }
+
+    // Create download link
+    const exportUrl = "{{ url_for('admin_export_issues') }}?ids=" + selectedIssues.join(',');
+    window.location.href = exportUrl;
+    showToast('info', `Exporting ${selectedIssues.length} issues...`);
+}
+
+// Print report
+function printReport() {
+    window.print();
+}
+
+// View issue details
+function viewIssue(issueId) {
+    if (!isValidUUID(issueId)) {
+        showToast('error', 'Invalid issue ID');
+        return;
+    }
+    window.location.href = "{{ url_for('view_solutions', issue_id='') }}" + issueId;
+}
+
+// Change status for single issue
+async function changeStatus(issueId, newStatus) {
+    if (!isValidUUID(issueId)) {
+        showToast('error', 'Invalid issue ID');
+        return;
+    }
+
+    if (!confirm(`Change status of this issue to "${getStatusName(newStatus)}"?`)) {
+        return;
+    }
+
+    showLoading(true);
+
+    try {
+        const response = await fetch("{{ url_for('update_issue_status', issue_id='') }}" + issueId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'status=' + newStatus
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Update the status badge in the table
+            const badge = document.querySelector(`tr[data-issue-id="${issueId}"] .status-badge`);
+            const statusInfo = getStatusInfo(newStatus);
+
+            if (badge) {
+                badge.className = `badge ${statusInfo.badge_class} status-badge`;
+                badge.textContent = statusInfo.name;
+                badge.setAttribute('data-status', newStatus);
+            }
+
+            showToast('success', 'Status updated successfully!');
+        } else {
+            showToast('error', data.error || 'Error updating status');
+        }
+    } catch (error) {
+        showToast('error', 'Network error: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Apply bulk status update
+async function applyBulkStatus() {
+    const newStatus = document.getElementById('bulkStatus').value;
+    if (!newStatus) {
+        showToast('warning', 'Please select a status first');
+        return;
+    }
+
+    const selectedIssues = Array.from(document.querySelectorAll('.issue-checkbox:checked'))
+                                .map(cb => cb.value);
+
+    if (selectedIssues.length === 0) {
+        showToast('warning', 'Please select at least one issue');
+        return;
+    }
+
+    const statusName = getStatusName(newStatus);
+    if (!confirm(`Update ${selectedIssues.length} issue(s) to "${statusName}"?`)) {
+        return;
+    }
+
+    showLoading(true);
+    const bulkBtn = document.getElementById('bulkStatusBtn');
+    const originalText = bulkBtn.innerHTML;
+    bulkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    bulkBtn.disabled = true;
+
+    try {
+        let successCount = 0;
+        let errorCount = 0;
+
+        // Update each issue sequentially to avoid overwhelming the server
+        for (const issueId of selectedIssues) {
+            if (!isValidUUID(issueId)) continue;
+
+            try {
+                const response = await fetch("{{ url_for('update_issue_status', issue_id='') }}" + issueId, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'status=' + newStatus
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    successCount++;
+                    // Update the status badge immediately
+                    const badge = document.querySelector(`tr[data-issue-id="${issueId}"] .status-badge`);
+                    const statusInfo = getStatusInfo(newStatus);
+
+                    if (badge) {
+                        badge.className = `badge ${statusInfo.badge_class} status-badge`;
+                        badge.textContent = statusInfo.name;
+                        badge.setAttribute('data-status', newStatus);
+                    }
+                } else {
+                    errorCount++;
+                }
+            } catch (error) {
+                errorCount++;
+            }
+        }
+
+        if (errorCount === 0) {
+            showToast('success', `Successfully updated ${successCount} issue(s)`);
+        } else if (successCount > 0) {
+            showToast('warning', `Updated ${successCount} issue(s), ${errorCount} failed`);
+        } else {
+            showToast('error', 'Failed to update any issues');
+        }
+
+        // Deselect all after bulk update
+        deselectAll();
+
+    } catch (error) {
+        showToast('error', 'Error during bulk update: ' + error.message);
+    } finally {
+        showLoading(false);
+        bulkBtn.innerHTML = originalText;
+        bulkBtn.disabled = selectedIssues.length === 0;
+    }
+}
+
+// Delete issue
+function deleteIssue(issueId) {
+    if (!isValidUUID(issueId)) {
+        showToast('error', 'Invalid issue ID');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to delete this issue? This action cannot be undone.')) {
+        return;
+    }
+
+    showToast('warning', 'Delete functionality needs to be implemented on the server side');
+}
+
+// Client-side search
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#issuesTable tbody tr');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const isVisible = searchTerm === '' || text.includes(searchTerm);
+        row.style.display = isVisible ? '' : 'none';
+        if (isVisible) visibleCount++;
+    });
+
+    // Update counter
+    const counter = document.querySelector('.mobile-card h5');
+    if (counter) {
+        counter.textContent = `Found ${visibleCount} issues`;
+    }
+});
+
+// Clear search
+function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchInput').dispatchEvent(new Event('input'));
+}
+
+// Scroll to top
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Helper functions
+function isValidUUID(id) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id);
+}
+
+function getStatusName(statusKey) {
+    // This would normally come from server config
+    const statusMap = {
+        'pending': 'Pending',
+        'in_progress': 'In Progress',
+        'done': 'Resolved',
+        'on_hold': 'On Hold',
+        'cancelled': 'Cancelled'
+    };
+    return statusMap[statusKey] || statusKey;
+}
+
+function getStatusInfo(statusKey) {
+    // This would normally come from server config
+    const statusInfo = {
+        'pending': { name: 'Pending', badge_class: 'bg-secondary' },
+        'in_progress': { name: 'In Progress', badge_class: 'bg-primary' },
+        'done': { name: 'Resolved', badge_class: 'bg-success' },
+        'on_hold': { name: 'On Hold', badge_class: 'bg-warning' },
+        'cancelled': { name: 'Cancelled', badge_class: 'bg-danger' }
+    };
+    return statusInfo[statusKey] || { name: statusKey, badge_class: 'bg-secondary' };
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateSelectedCount();
+});
+</script>
+
+<style>
+/* Additional styles for better UX */
+.status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.mobile-card {
+    margin-bottom: 1rem;
+}
+
+#searchInput {
+    border-right: none;
+}
+
+#searchInput:focus {
+    box-shadow: none;
+    border-color: #667eea;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.dropdown-menu {
+    font-size: 0.85rem;
+}
+
+.toast {
+    min-width: 300px;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.bg-primary { background-color: #667eea !important; }
+.bg-success { background-color: #10b981 !important; }
+.bg-warning { background-color: #f59e0b !important; }
+.bg-danger { background-color: #ef4444 !important; }
+.bg-secondary { background-color: #9ca3af !important; }
+.bg-info { background-color: #3b82f6 !important; }
+</style>
+{% endblock %}

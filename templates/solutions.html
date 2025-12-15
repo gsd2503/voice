@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <h1><i class="fas fa-city"></i> Voice</h1>
+    <div class="user-info">
+        <span>👤 {{ current_user.full_name }}</span>
+        <span style="font-size: 0.8rem; opacity: 0.9;">(Citizen)</span>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="mobile-tabs">
+    <a href="{{ url_for('dashboard') }}" class="mobile-tab">Home</a>
+    <a href="{{ url_for('report_issue') }}" class="mobile-tab">Report Issue</a>
+    <a href="{{ url_for('my_issues') }}" class="mobile-tab">My Issues</a>
+    <a href="{{ url_for('map_view') }}" class="mobile-tab">Map</a>
+    <a href="{{ url_for('profile') }}" class="mobile-tab">Profile</a>
+    <a href="{{ url_for('logout') }}" class="mobile-tab">Logout</a>
+</div>
+
+<!-- Issue Details -->
+<div class="mobile-card">
+    <div class="row">
+        <div class="col-md-9">
+            <h3><i class="fas fa-lightbulb"></i> Solutions for: {{ issue.title }}</h3>
+            <p class="text-muted mb-1">
+                <i class="fas fa-map-marker-alt"></i> {{ issue.location }}
+            </p>
+            <p class="mb-2">{{ issue.description }}</p>
+            <div class="d-flex gap-2">
+                <span class="status-badge {{ ISSUE_STATUSES[issue.status].badge_class }}">
+                    {{ ISSUE_STATUSES[issue.status].name }}
+                </span>
+                <span class="status-badge {{ PRIORITY_LEVELS[issue.priority].badge_class }}">
+                    {{ PRIORITY_LEVELS[issue.priority].name }}
+                </span>
+                <span class="badge bg-info">
+                    {{ SERVICE_TYPES[issue.service_type].icon }}
+                    {{ SERVICE_TYPES[issue.service_type].name }}
+                </span>
+            </div>
+        </div>
+        <div class="col-md-3 text-end">
+            <div class="mt-2">
+                {% if not user_solution and issue.status != 'done' %}
+                <a href="{{ url_for('add_solution', issue_id=issue.id) }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus-circle"></i> Suggest Solution
+                </a>
+                {% endif %}
+                <a href="{{ url_for('view_issues') }}" class="btn btn-outline-secondary btn-sm mt-1">
+                    <i class="fas fa-arrow-left"></i> Back to Issues
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Solutions Count -->
+<div class="mobile-card">
+    <div class="row">
+        <div class="col-md-6">
+            <h5><i class="fas fa-list-check"></i> Proposed Solutions ({{ solutions|length }})</h5>
+        </div>
+        <div class="col-md-6 text-end">
+            {% if user_solution %}
+            <div class="alert alert-info py-2 mb-0">
+                <i class="fas fa-info-circle"></i> You have already submitted a solution
+                <a href="{{ url_for('edit_solution', solution_id=user_solution.id) }}" class="btn btn-sm btn-outline-primary ms-2">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Solutions List -->
+{% if solutions %}
+    {% for solution in solutions %}
+    <div class="mobile-card solution-card {% if solution.is_accepted %}accepted-solution{% endif %}">
+        <div class="row">
+            <div class="col-md-10">
+                <div class="d-flex align-items-start">
+                    {% if solution.is_accepted %}
+                    <span class="badge bg-success me-2">
+                        <i class="fas fa-check-circle"></i> Accepted
+                    </span>
+                    {% endif %}
+                    <div>
+                        <h6 class="mb-1">
+                            {% if solution.user.id == current_user.id %}
+                            <strong>Your Solution</strong>
+                            {% else %}
+                            Suggested by: {{ solution.user.full_name }}
+                            {% endif %}
+                            <small class="text-muted ms-2">
+                                {{ solution.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            </small>
+                        </h6>
+                        <p class="mb-2">{{ solution.description }}</p>
+
+                        <!-- Solution Actions -->
+                        <div class="d-flex gap-2 mt-2">
+                            <!-- Voting buttons -->
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-success vote-btn {% if user_votes.get(solution.id|string) == 'upvote' %}active{% endif %}"
+                                        data-solution-id="{{ solution.id }}" data-vote-type="upvote">
+                                    <i class="fas fa-thumbs-up"></i>
+                                    <span class="vote-count">{{ solution.upvotes }}</span>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger vote-btn {% if user_votes.get(solution.id|string) == 'downvote' %}active{% endif %}"
+                                        data-solution-id="{{ solution.id }}" data-vote-type="downvote">
+                                    <i class="fas fa-thumbs-down"></i>
+                                    <span class="vote-count">{{ solution.downvotes }}</span>
+                                </button>
+                            </div>
+
+                            <!-- Edit/Delete buttons for solution owner -->
+                            {% if solution.user.id == current_user.id or current_user.role == 'admin' %}
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('edit_solution', solution_id=solution.id) }}" class="btn btn-outline-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-danger delete-solution-btn"
+                                        data-solution-id="{{ solution.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            {% endif %}
+
+                            <!-- Admin accept button -->
+                            {% if current_user.role == 'admin' and issue.status != 'done' %}
+                            <button type="button" class="btn btn-sm {% if solution.is_accepted %}btn-success{% else %}btn-outline-success{% endif %} accept-solution-btn"
+                                    data-solution-id="{{ solution.id }}">
+                                <i class="fas fa-check"></i> {% if solution.is_accepted %}Accepted{% else %}Accept{% endif %}
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 text-end">
+                <!-- Score display -->
+                <div class="score-display">
+                    <span class="badge {% if solution.upvotes > solution.downvotes %}bg-success{% elif solution.upvotes < solution.downvotes %}bg-danger{% else %}bg-secondary{% endif %}">
+                        Score: {{ solution.upvotes - solution.downvotes }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="mobile-card">
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> No solutions have been proposed yet.
+        {% if issue.status != 'done' %}
+        <div class="mt-2">
+            <a href="{{ url_for('add_solution', issue_id=issue.id) }}" class="btn btn-primary">
+                <i class="fas fa-lightbulb"></i> Be the first to suggest a solution
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Guidelines -->
+<div class="mobile-card">
+    <h5><i class="fas fa-graduation-cap"></i> Solution Guidelines</h5>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="alert alert-success">
+                <h6><i class="fas fa-check-circle"></i> Do:</h6>
+                <ul class="mb-0">
+                    <li>Provide practical, implementable solutions</li>
+                    <li>Include cost estimates if possible</li>
+                    <li>Consider safety and environmental impact</li>
+                    <li>Vote on other solutions based on merit</li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="alert alert-warning">
+                <h6><i class="fas fa-exclamation-triangle"></i> Don't:</h6>
+                <ul class="mb-0">
+                    <li>Submit duplicate or irrelevant solutions</li>
+                    <li>Include personal attacks or offensive content</li>
+                    <li>Propose illegal or unsafe methods</li>
+                    <li>Downvote without providing constructive feedback</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.solution-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.solution-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.solution-card.accepted-solution {
+    border-left: 4px solid #28a745;
+    background-color: rgba(40, 167, 69, 0.05);
+}
+
+.vote-btn.active {
+    background-color: #6c757d;
+    color: white;
+}
+
+.vote-btn.active.btn-outline-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.vote-btn.active.btn-outline-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.score-display .badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Voting functionality
+document.querySelectorAll('.vote-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const solutionId = this.dataset.solutionId;
+        const voteType = this.dataset.voteType;
+        const isActive = this.classList.contains('active');
+
+        // Disable button during request
+        this.disabled = true;
+
+        fetch(`/solution/${solutionId}/vote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `vote_type=${voteType}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update vote counts
+                const solutionCard = this.closest('.solution-card');
+                const upvoteBtn = solutionCard.querySelector(`[data-vote-type="upvote"]`);
+                const downvoteBtn = solutionCard.querySelector(`[data-vote-type="downvote"]`);
+
+                upvoteBtn.querySelector('.vote-count').textContent = data.upvotes;
+                downvoteBtn.querySelector('.vote-count').textContent = data.downvotes;
+
+                // Update active states
+                if (data.action === 'added') {
+                    this.classList.add('active');
+                    if (voteType === 'upvote') {
+                        downvoteBtn.classList.remove('active');
+                    } else {
+                        upvoteBtn.classList.remove('active');
+                    }
+                } else if (data.action === 'removed') {
+                    this.classList.remove('active');
+                } else if (data.action === 'updated') {
+                    this.classList.add('active');
+                    const otherBtn = voteType === 'upvote' ? downvoteBtn : upvoteBtn;
+                    otherBtn.classList.remove('active');
+                }
+
+                // Update score display
+                const score = data.upvotes - data.downvotes;
+                const scoreBadge = solutionCard.querySelector('.score-display .badge');
+                scoreBadge.textContent = `Score: ${score}`;
+
+                if (score > 0) {
+                    scoreBadge.className = 'badge bg-success';
+                } else if (score < 0) {
+                    scoreBadge.className = 'badge bg-danger';
+                } else {
+                    scoreBadge.className = 'badge bg-secondary';
+                }
+            } else {
+                alert('Error voting: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error voting. Please try again.');
+        })
+        .finally(() => {
+            this.disabled = false;
+        });
+    });
+});
+
+// Accept solution (admin only)
+document.querySelectorAll('.accept-solution-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const solutionId = this.dataset.solutionId;
+
+        if (!confirm('Mark this solution as accepted?')) {
+            return;
+        }
+
+        fetch(`/admin/solution/${solutionId}/accept`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove accepted status from all solutions
+                document.querySelectorAll('.solution-card').forEach(card => {
+                    card.classList.remove('accepted-solution');
+                    const badge = card.querySelector('.badge.bg-success');
+                    if (badge && badge.innerHTML.includes('Accepted')) {
+                        badge.remove();
+                    }
+                });
+
+                // Add accepted status to this solution
+                const solutionCard = this.closest('.solution-card');
+                solutionCard.classList.add('accepted-solution');
+
+                // Update button text
+                this.classList.remove('btn-outline-success');
+                this.classList.add('btn-success');
+                this.innerHTML = '<i class="fas fa-check"></i> Accepted';
+
+                // Add accepted badge
+                const header = solutionCard.querySelector('h6');
+                if (header) {
+                    const acceptedBadge = document.createElement('span');
+                    acceptedBadge.className = 'badge bg-success me-2';
+                    acceptedBadge.innerHTML = '<i class="fas fa-check-circle"></i> Accepted';
+                    header.insertBefore(acceptedBadge, header.firstChild);
+                }
+
+                alert('Solution accepted successfully!');
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error accepting solution. Please try again.');
+        });
+    });
+});
+
+// Delete solution
+document.querySelectorAll('.delete-solution-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const solutionId = this.dataset.solutionId;
+
+        if (!confirm('Are you sure you want to delete this solution?')) {
+            return;
+        }
+
+        fetch(`/solution/${solutionId}/delete`, {
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Error deleting solution');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting solution. Please try again.');
+        });
+    });
+});
+</script>
+{% endblock %}

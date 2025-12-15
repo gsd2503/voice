@@ -1,0 +1,510 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <h1><i class="fas fa-city"></i> CivicCare</h1>
+    <div class="user-info">
+        <span>👤 {{ current_user.full_name }}</span>
+        <span style="font-size: 0.8rem; opacity: 0.9;">(Citizen)</span>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="mobile-tabs">
+    <a href="{{ url_for('dashboard') }}" class="mobile-tab">Home</a>
+    <a href="{{ url_for('report_issue') }}" class="mobile-tab">Report Issue</a>
+    <a href="{{ url_for('my_issues') }}" class="mobile-tab">My Issues</a>
+    <a href="{{ url_for('view_issues') }}" class="mobile-tab">View Issues</a>
+    <a href="{{ url_for('map_view') }}" class="mobile-tab active">Map</a>
+    <a href="{{ url_for('profile') }}" class="mobile-tab">Profile</a>
+    <a href="{{ url_for('logout') }}" class="mobile-tab">Logout</a>
+</div>
+
+<!-- Main Card -->
+<div class="mobile-card">
+    <h3><i class="fas fa-map"></i> Issues Map</h3>
+    <p>View all reported issues on an interactive map. Click on markers for details.</p>
+</div>
+
+<!-- Filters -->
+<div class="mobile-card">
+    <h5><i class="fas fa-filter"></i> Filter Issues</h5>
+    <form method="GET" action="{{ url_for('map_view') }}" class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">Service Type</label>
+            <select class="form-control" name="service_type" id="serviceFilter">
+                <option value="all">All Types</option>
+                {% for service_key, service_info in SERVICE_TYPES.items() %}
+                <option value="{{ service_key }}">{{ service_info.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Status</label>
+            <select class="form-control" name="status" id="statusFilter">
+                <option value="all">All Statuses</option>
+                {% for status_key, status_info in ISSUE_STATUSES.items() %}
+                <option value="{{ status_key }}">{{ status_info.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-search"></i> Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Map Container -->
+<div class="mobile-card">
+    <h5>Issues Map</h5>
+
+    {% if not map_html %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i> No issues with location data found.
+        <p class="mt-2 mb-0">When reporting issues, enable location or enter coordinates to see them on the map.</p>
+    </div>
+
+    <!-- Manual Coordinates Input -->
+    <div class="mt-3">
+        <button class="btn btn-outline-primary" onclick="showManualLocationInput()">
+            <i class="fas fa-map-marker-alt"></i> Add Coordinates Manually
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- Map Display -->
+    <div id="mapContainer" class="mt-3" style="height: 400px; border-radius: 10px; overflow: hidden;">
+        {% if map_html %}
+        {{ map_html|safe }}
+        {% else %}
+        <div id="map" style="height: 100%; width: 100%;"></div>
+        <div class="text-center py-5">
+            <i class="fas fa-map-marked-alt fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Loading map...</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Stats -->
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6><i class="fas fa-map-pin text-primary"></i> Total Mapped Issues</h6>
+                    <h4 id="mappedCount">0</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6><i class="fas fa-exclamation-triangle text-warning"></i> Pending Issues</h6>
+                    <h4 id="pendingCount">0</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Issues List -->
+<div class="mobile-card">
+    <h5>All Issues with Location Data</h5>
+
+    <div id="issuesList" class="mt-3">
+        <div class="list-group">
+            {% for issue in issues %}
+            <div class="list-group-item issue-item" data-id="{{ issue.id }}"
+                 data-lat="{{ issue.latitude }}" data-lng="{{ issue.longitude }}"
+                 data-type="{{ issue.service_type }}" data-status="{{ issue.status }}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">{{ issue.title }}</h6>
+                        <p class="mb-1 text-muted">{{ issue.location }}</p>
+                        <div class="mt-2">
+                            <span class="badge {{ SERVICE_TYPES[issue.service_type].badge_class }}">
+                                <i class="{{ SERVICE_TYPES[issue.service_type].icon_class }}"></i>
+                                {{ SERVICE_TYPES[issue.service_type].name }}
+                            </span>
+                            <span class="badge {{ ISSUE_STATUSES[issue.status].badge_class }}">
+                                {{ ISSUE_STATUSES[issue.status].name }}
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewIssue('{{ issue.id }}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="centerOnIssue('{{ issue.id }}')">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                {% if issue.latitude and issue.longitude %}
+                <div class="mt-2 text-muted small">
+                    <i class="fas fa-globe-asia"></i> Coordinates: {{ "%.4f"|format(issue.latitude) }}, {{ "%.4f"|format(issue.longitude) }}
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No issues with location data available.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Manual Coordinates Modal -->
+<div class="modal fade" id="manualLocationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-map-marker-alt"></i> Add Coordinates</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Enter coordinates for an issue that doesn't have location data.</p>
+                <div class="form-group">
+                    <label class="form-label">Select Issue</label>
+                    <select class="form-control" id="issueSelect">
+                        <option value="">Select an issue</option>
+                        {% for issue in all_issues %}
+                        {% if not issue.latitude or not issue.longitude %}
+                        <option value="{{ issue.id }}">{{ issue.title }} - {{ issue.location }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                        <label class="form-label">Latitude</label>
+                        <input type="number" class="form-control" id="manualLat" step="0.0001" placeholder="e.g., 19.0760">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Longitude</label>
+                        <input type="number" class="form-control" id="manualLng" step="0.0001" placeholder="e.g., 72.8777">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-outline-secondary" onclick="useCurrentLocationForManual()">
+                        <i class="fas fa-location-arrow"></i> Use Current Location
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveManualCoordinates()">
+                    <i class="fas fa-save"></i> Save Coordinates
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<script>
+let map;
+let markers = [];
+let issuesData = [];
+
+// Initialize map
+function initMap() {
+    // Default center (India)
+    const defaultCenter = [20.5937, 78.9629];
+    const defaultZoom = 5;
+
+    // Try to get issues with coordinates
+    const issueItems = document.querySelectorAll('.issue-item');
+    let hasValidCoordinates = false;
+
+    // Check if any issue has coordinates
+    issueItems.forEach(item => {
+        const lat = parseFloat(item.dataset.lat);
+        const lng = parseFloat(item.dataset.lng);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            hasValidCoordinates = true;
+        }
+    });
+
+    // Create map
+    map = L.map('map').setView(defaultCenter, defaultZoom);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(map);
+
+    // Add markers for issues with coordinates
+    let bounds = L.latLngBounds();
+
+    issueItems.forEach((item, index) => {
+        const lat = parseFloat(item.dataset.lat);
+        const lng = parseFloat(item.dataset.lng);
+        const issueId = item.dataset.id;
+        const serviceType = item.dataset.type;
+        const status = item.dataset.status;
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+            // Get issue info from the DOM
+            const title = item.querySelector('h6').textContent;
+            const location = item.querySelector('.text-muted').textContent;
+            const serviceInfo = getServiceInfo(serviceType);
+            const statusInfo = getStatusInfo(status);
+
+            // Create marker
+            const marker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div class="marker-icon ${status}-marker" style="background-color: ${serviceInfo.color || '#666'}">
+                          <i class="${serviceInfo.icon_class}"></i>
+                          </div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30]
+                })
+            }).addTo(map);
+
+            // Add popup
+            const popupContent = `
+                <div style="width: 200px;">
+                    <h5>${title}</h5>
+                    <p><strong>Location:</strong> ${location}</p>
+                    <p><strong>Type:</strong> ${serviceInfo.name}</p>
+                    <p><strong>Status:</strong> ${statusInfo.name}</p>
+                    <div class="mt-2">
+                        <a href="/issue/${issueId}/solutions" class="btn btn-sm btn-primary w-100">
+                            <i class="fas fa-lightbulb"></i> View Solutions
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+
+            // Add to bounds
+            bounds.extend([lat, lng]);
+
+            // Store marker reference
+            markers.push({
+                marker: marker,
+                issueId: issueId,
+                serviceType: serviceType,
+                status: status
+            });
+
+            // Store issue data
+            issuesData.push({
+                id: issueId,
+                lat: lat,
+                lng: lng,
+                title: title,
+                location: location,
+                serviceType: serviceType,
+                status: status
+            });
+        }
+    });
+
+    // If we have markers, fit bounds
+    if (markers.length > 0) {
+        map.fitBounds(bounds, { padding: [50, 50] });
+    }
+
+    // Update stats
+    updateStats();
+}
+
+// Update statistics
+function updateStats() {
+    document.getElementById('mappedCount').textContent = markers.length;
+
+    const pendingCount = markers.filter(m => m.status === 'pending').length;
+    document.getElementById('pendingCount').textContent = pendingCount;
+}
+
+// Center map on specific issue
+function centerOnIssue(issueId) {
+    const issue = issuesData.find(i => i.id === issueId);
+    if (issue) {
+        map.setView([issue.lat, issue.lng], 15);
+
+        // Open popup
+        const markerObj = markers.find(m => m.issueId === issueId);
+        if (markerObj) {
+            markerObj.marker.openPopup();
+        }
+    }
+}
+
+// View issue details
+function viewIssue(issueId) {
+    window.location.href = `/issue/${issueId}/solutions`;
+}
+
+// Manual location input
+function showManualLocationInput() {
+    const modal = new bootstrap.Modal(document.getElementById('manualLocationModal'));
+    modal.show();
+}
+
+// Use current location for manual input
+function useCurrentLocationForManual() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                document.getElementById('manualLat').value = position.coords.latitude.toFixed(6);
+                document.getElementById('manualLng').value = position.coords.longitude.toFixed(6);
+            },
+            function(error) {
+                alert('Unable to get location: ' + error.message);
+            }
+        );
+    } else {
+        alert('Geolocation not supported by your browser');
+    }
+}
+
+// Save manual coordinates
+async function saveManualCoordinates() {
+    const issueId = document.getElementById('issueSelect').value;
+    const lat = document.getElementById('manualLat').value;
+    const lng = document.getElementById('manualLng').value;
+
+    if (!issueId || !lat || !lng) {
+        alert('Please select an issue and enter coordinates');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/issue/${issueId}/update-coordinates`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                latitude: parseFloat(lat),
+                longitude: parseFloat(lng)
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('Coordinates saved successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Network error: ' + error.message);
+    }
+}
+
+// Helper functions
+function getServiceInfo(serviceType) {
+    const services = {{ SERVICE_TYPES|tojson }};
+    return services[serviceType] || { name: serviceType, color: '#666', icon_class: 'fas fa-question-circle' };
+}
+
+function getStatusInfo(status) {
+    const statuses = {{ ISSUE_STATUSES|tojson }};
+    return statuses[status] || { name: status, badge_class: 'bg-secondary' };
+}
+
+// Filter issues on map
+function filterMap() {
+    const serviceType = document.getElementById('serviceFilter').value;
+    const status = document.getElementById('statusFilter').value;
+
+    markers.forEach(markerObj => {
+        let show = true;
+
+        if (serviceType !== 'all' && markerObj.serviceType !== serviceType) {
+            show = false;
+        }
+
+        if (status !== 'all' && markerObj.status !== status) {
+            show = false;
+        }
+
+        if (show) {
+            markerObj.marker.addTo(map);
+        } else {
+            markerObj.marker.removeFrom(map);
+        }
+    });
+
+    updateStats();
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map only if we're using Leaflet (not Folium)
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+        initMap();
+    }
+
+    // Add event listeners for filters
+    document.getElementById('serviceFilter')?.addEventListener('change', filterMap);
+    document.getElementById('statusFilter')?.addEventListener('change', filterMap);
+
+    // Add click events to issue items
+    document.querySelectorAll('.issue-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            if (!e.target.closest('button')) {
+                const issueId = this.dataset.id;
+                viewIssue(issueId);
+            }
+        });
+    });
+});
+</script>
+
+<style>
+#mapContainer {
+    min-height: 400px;
+    background-color: #f8f9fa;
+}
+
+.marker-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    border: 2px solid white;
+}
+
+.pending-marker {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+}
+
+.issue-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.issue-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+}
+</style>
+{% endblock %}

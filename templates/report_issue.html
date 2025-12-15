@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <h1><i class="fas fa-city"></i> CivicCare</h1>
+    <div class="user-info">
+        <span>👤 {{ current_user.full_name }}</span>
+        <span style="font-size: 0.8rem; opacity: 0.9;">(Citizen)</span>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="mobile-tabs">
+    <a href="{{ url_for('dashboard') }}" class="mobile-tab">Home</a>
+    <a href="{{ url_for('report_issue') }}" class="mobile-tab active">Report Issue</a>
+    <a href="{{ url_for('my_issues') }}" class="mobile-tab">My Issues</a>
+    <a href="{{ url_for('map_view') }}" class="mobile-tab">Map</a>
+    <a href="{{ url_for('profile') }}" class="mobile-tab">Profile</a>
+    <a href="{{ url_for('logout') }}" class="mobile-tab">Logout</a>
+</div>
+
+<!-- Main Card -->
+<div class="mobile-card">
+    <h3><i class="fas fa-edit"></i> Report a Civic Issue</h3>
+    <p>Help improve your community by reporting issues. Your report will be reviewed by authorities.</p>
+</div>
+
+<!-- Issue Form -->
+<form method="POST" action="{{ url_for('report_issue') }}" enctype="multipart/form-data" id="issueForm">
+    <!-- Issue Type Selection -->
+    <div class="mobile-card">
+        <h3>1. Select Issue Type*</h3>
+        <div class="service-grid">
+            {% for service_key, service_info in SERVICE_TYPES.items() %}
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="service_type"
+                       id="service_{{ service_key }}" value="{{ service_key }}" required
+                       {% if loop.first %}checked{% endif %}>
+                <label class="form-check-label service-card" for="service_{{ service_key }}">
+                    <div class="service-icon"><i class="{{ service_info.icon_class }}"></i></div>
+                    <div>{{ service_info.name }}</div>
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="serviceTypeError" class="text-danger mt-2" style="display: none;">
+            <i class="fas fa-exclamation-circle"></i> Please select an issue type
+        </div>
+    </div>
+
+    <!-- Issue Details -->
+    <div class="mobile-card">
+        <h3>2. Issue Details</h3>
+
+        <div class="form-group">
+            <label class="form-label">Issue Title*</label>
+            <input type="text" class="form-control" name="title"
+                   placeholder="e.g., Large pothole on Main Road" required
+                   id="issueTitle">
+            <div id="titleError" class="text-danger mt-1" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i> Please enter a title
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Description*</label>
+            <textarea class="form-control" name="description" rows="4"
+                      placeholder="Describe the issue in detail. Include location, severity, and any safety concerns..."
+                      required id="issueDescription"></textarea>
+            <div id="descriptionError" class="text-danger mt-1" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i> Please enter a description
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Priority Level*</label>
+            <select class="form-control" name="priority" required id="issuePriority">
+                <option value="">Select Priority</option>
+                {% for priority_key, priority_info in PRIORITY_LEVELS.items() %}
+                <option value="{{ priority_key }}" {% if priority_key == 'medium' %}selected{% endif %}>
+                    {{ priority_info.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <div id="priorityError" class="text-danger mt-1" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i> Please select a priority
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Details -->
+    <div class="mobile-card">
+        <h3>3. Location Details</h3>
+
+        <div class="form-group">
+            <label class="form-label">Location*</label>
+            <input type="text" class="form-control" name="location"
+                   placeholder="Street, Landmark, Area, City" required
+                   id="issueLocation">
+            <div id="locationError" class="text-danger mt-1" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i> Please enter a location
+            </div>
+        </div>
+
+        <div class="row g-2">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label">Area (Optional)</label>
+                    <input type="text" class="form-control" name="area"
+                           placeholder="e.g., Downtown, Suburbs">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label">City (Optional)</label>
+                    <input type="text" class="form-control" name="city"
+                           placeholder="e.g., Mumbai, Delhi">
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <button type="button" class="btn btn-outline-primary" onclick="useCurrentLocation()">
+                <i class="fas fa-map-marker-alt"></i> Use Current Location
+            </button>
+        </div>
+
+        <!-- Hidden fields for coordinates -->
+        <input type="hidden" name="latitude" id="latitude">
+        <input type="hidden" name="longitude" id="longitude">
+    </div>
+
+    <!-- Upload Evidence -->
+    <div class="mobile-card">
+        <h3>4. Upload Evidence (Optional)</h3>
+
+        <div class="upload-area" id="uploadArea">
+            <i class="fas fa-camera"></i>
+            <p>Upload photos or videos as evidence</p>
+            <p style="font-size: 0.8rem; color: #666;">Max 5 files, 10MB each</p>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Choose files</label>
+            <input type="file" class="form-control" name="media_files"
+                   id="mediaFiles"
+                   accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.mp4,.avi,.mov,.mkv"
+                   multiple>
+            <small class="form-text text-muted">
+                Accepted: Images (JPG, PNG, GIF), Documents (PDF, DOC), Videos (MP4, AVI, MOV)
+            </small>
+            <div id="fileError" class="text-danger mt-1" style="display: none;"></div>
+        </div>
+
+        <div id="filePreview" class="mt-3"></div>
+    </div>
+
+    <!-- Submit Button -->
+    <button type="submit" class="btn btn-primary btn-lg w-100 mb-4" id="submitBtn">
+        <i class="fas fa-paper-plane"></i> Submit Issue
+    </button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Add visual feedback for service type selection
+document.querySelectorAll('.form-check-input').forEach(radio => {
+    radio.addEventListener('change', function() {
+        document.querySelectorAll('.service-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        if (this.checked) {
+            this.parentElement.querySelector('.service-card').classList.add('selected');
+            document.getElementById('serviceTypeError').style.display = 'none';
+        }
+    });
+});
+
+// Initialize with first service type selected
+document.addEventListener('DOMContentLoaded', function() {
+    const firstRadio = document.querySelector('.form-check-input');
+    if (firstRadio) {
+        firstRadio.checked = true;
+        firstRadio.parentElement.querySelector('.service-card').classList.add('selected');
+    }
+});
+
+// Real-time validation for required fields
+document.querySelectorAll('input[required], textarea[required], select[required]').forEach(field => {
+    field.addEventListener('blur', function() {
+        validateField(this);
+    });
+
+    field.addEventListener('input', function() {
+        clearError(this);
+    });
+});
+
+function validateField(field) {
+    const errorId = field.id + 'Error';
+    const errorElement = document.getElementById(errorId);
+
+    if (!field.value.trim()) {
+        if (errorElement) {
+            errorElement.style.display = 'block';
+        }
+        field.classList.add('is-invalid');
+        return false;
+    } else {
+        if (errorElement) {
+            errorElement.style.display = 'none';
+        }
+        field.classList.remove('is-invalid');
+        return true;
+    }
+}
+
+function clearError(field) {
+    const errorId = field.id + 'Error';
+    const errorElement = document.getElementById(errorId);
+
+    if (errorElement) {
+        errorElement.style.display = 'none';
+    }
+    field.classList.remove('is-invalid');
+}
+
+// Validate service type
+function validateServiceType() {
+    const serviceType = document.querySelector('input[name="service_type"]:checked');
+    const errorElement = document.getElementById('serviceTypeError');
+
+    if (!serviceType) {
+        if (errorElement) {
+            errorElement.style.display = 'block';
+        }
+        return false;
+    } else {
+        if (errorElement) {
+            errorElement.style.display = 'none';
+        }
+        return true;
+    }
+}
+
+// Form validation on submit
+document.getElementById('issueForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    let isValid = true;
+
+    // Validate service type
+    if (!validateServiceType()) {
+        isValid = false;
+    }
+
+    // Validate required fields
+    const requiredFields = ['title', 'description', 'priority', 'location'];
+    requiredFields.forEach(fieldName => {
+        const field = document.getElementById('issue' + fieldName.charAt(0).toUpperCase() + fieldName.slice(1));
+        if (field && !validateField(field)) {
+            isValid = false;
+        }
+    });
+
+    // Validate file size
+    const fileInput = document.getElementById('mediaFiles');
+    if (fileInput.files.length > 0) {
+        let totalSize = 0;
+        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+
+        for (let i = 0; i < fileInput.files.length; i++) {
+            totalSize += fileInput.files[i].size;
+            if (fileInput.files[i].size > maxSize) {
+                document.getElementById('fileError').innerHTML =
+                    `<i class="fas fa-exclamation-circle"></i> File "${fileInput.files[i].name}" is too large (max 10MB)`;
+                document.getElementById('fileError').style.display = 'block';
+                isValid = false;
+                break;
+            }
+        }
+
+        if (totalSize > maxSize * 5) { // Max 50MB total
+            document.getElementById('fileError').innerHTML =
+                `<i class="fas fa-exclamation-circle"></i> Total file size exceeds 50MB limit`;
+            document.getElementById('fileError').style.display = 'block';
+            isValid = false;
+        }
+    }
+
+    if (isValid) {
+        // Show loading state
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        submitBtn.disabled = true;
+
+        // Submit the form
+        this.submit();
+    } else {
+        // Scroll to first error
+        const firstError = document.querySelector('.is-invalid');
+        if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+});
+
+// File preview
+document.getElementById('mediaFiles').addEventListener('change', function(e) {
+    const files = e.target.files;
+    const uploadArea = document.getElementById('uploadArea');
+    const filePreview = document.getElementById('filePreview');
+    const fileError = document.getElementById('fileError');
+
+    // Clear previous errors and previews
+    fileError.style.display = 'none';
+    filePreview.innerHTML = '';
+
+    if (files.length > 0) {
+        uploadArea.innerHTML = `
+            <i class="fas fa-check-circle" style="color: #4CAF50;"></i>
+            <p>${files.length} file(s) selected</p>
+            <p style="font-size: 0.8rem; color: #666;">Ready to upload</p>
+        `;
+
+        // Create file list preview
+        const fileList = document.createElement('div');
+        fileList.className = 'list-group';
+
+        for (let i = 0; i < Math.min(files.length, 5); i++) {
+            const file = files[i];
+            const fileItem = document.createElement('div');
+            fileItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+            fileItem.innerHTML = `
+                <div>
+                    <i class="fas fa-file ${getFileIcon(file.type)} me-2"></i>
+                    ${file.name}
+                </div>
+                <small class="text-muted">${formatFileSize(file.size)}</small>
+            `;
+            fileList.appendChild(fileItem);
+        }
+
+        if (files.length > 5) {
+            const moreItem = document.createElement('div');
+            moreItem.className = 'list-group-item text-muted';
+            moreItem.textContent = `... and ${files.length - 5} more file(s)`;
+            fileList.appendChild(moreItem);
+        }
+
+        filePreview.appendChild(fileList);
+    } else {
+        uploadArea.innerHTML = `
+            <i class="fas fa-camera"></i>
+            <p>Upload photos or videos as evidence</p>
+            <p style="font-size: 0.8rem; color: #666;">Max 5 files, 10MB each</p>
+        `;
+    }
+});
+
+// Helper functions
+function getFileIcon(mimeType) {
+    if (mimeType.startsWith('image/')) return 'fa-image text-primary';
+    if (mimeType.startsWith('video/')) return 'fa-video text-danger';
+    if (mimeType === 'application/pdf') return 'fa-file-pdf text-danger';
+    if (mimeType.includes('document') || mimeType.includes('word')) return 'fa-file-word text-primary';
+    return 'fa-file text-secondary';
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Current location function (placeholder)
+function useCurrentLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                document.getElementById('latitude').value = position.coords.latitude;
+                document.getElementById('longitude').value = position.coords.longitude;
+
+                // You could use reverse geocoding here to get address
+                // For now, just show a success message
+                alert('Location obtained successfully! You can now enter your address manually.');
+            },
+            function(error) {
+                alert('Unable to get location. Please enter manually.');
+                console.error('Geolocation error:', error);
+            }
+        );
+    } else {
+        alert('Geolocation is not supported by your browser. Please enter manually.');
+    }
+}
+</script>
+
+<style>
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.service-card {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.service-card:hover {
+    border-color: #667eea;
+    background: #f8f9fa;
+}
+
+.service-card.selected {
+    border-color: #667eea;
+    background: #f0f4ff;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.service-icon {
+    font-size: 24px;
+    color: #667eea;
+    margin-bottom: 8px;
+}
+
+.form-check-input {
+    display: none;
+}
+
+.upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 20px;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+    border-color: #667eea;
+    background: #f0f4ff;
+}
+
+.is-invalid {
+    border-color: #dc3545 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+</style>
+{% endblock %}

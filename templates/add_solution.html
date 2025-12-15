@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <h1><i class="fas fa-city"></i> Voice</h1>
+    <div class="user-info">
+        <span>👤 {{ current_user.full_name }}</span>
+        <span style="font-size: 0.8rem; opacity: 0.9;">(Citizen)</span>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="mobile-tabs">
+    <a href="{{ url_for('dashboard') }}" class="mobile-tab">Home</a>
+    <a href="{{ url_for('report_issue') }}" class="mobile-tab">Report Issue</a>
+    <a href="{{ url_for('my_issues') }}" class="mobile-tab">My Issues</a>
+    <a href="{{ url_for('view_issues') }}" class="mobile-tab">View Issues</a>
+    <a href="{{ url_for('map_view') }}" class="mobile-tab">Map</a>
+    <a href="{{ url_for('profile') }}" class="mobile-tab">Profile</a>
+    <a href="{{ url_for('logout') }}" class="mobile-tab">Logout</a>
+</div>
+
+<!-- Main Card -->
+<div class="mobile-card">
+    <h3><i class="fas fa-lightbulb"></i> Suggest a Solution</h3>
+    <p>Propose a practical solution for this issue.</p>
+</div>
+
+<!-- Issue Details -->
+<div class="mobile-card">
+    <h5>Issue Details</h5>
+    <div class="row">
+        <div class="col-md-9">
+            <h6>{{ issue.title }}</h6>
+            <p class="text-muted mb-1">
+                <i class="fas fa-map-marker-alt"></i> {{ issue.location }}
+            </p>
+            <p class="mb-2">{{ issue.description }}</p>
+        </div>
+        <div class="col-md-3 text-end">
+            <span class="status-badge {{ ISSUE_STATUSES[issue.status].badge_class }}">
+                {{ ISSUE_STATUSES[issue.status].name }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Solution Form -->
+<div class="mobile-card">
+    <form method="POST" action="{{ url_for('add_solution', issue_id=issue.id) }}">
+        <div class="form-group mb-4">
+            <label class="form-label">Your Solution *</label>
+            <textarea class="form-control" name="description" rows="8"
+                      placeholder="Describe your proposed solution in detail. Include practical steps, estimated costs, timeline, and any other relevant information..."
+                      required></textarea>
+            <small class="form-text text-muted">
+                Minimum 10 characters. Be specific and practical.
+            </small>
+        </div>
+
+        <!-- Template suggestions -->
+        <div class="mb-4">
+            <h6><i class="fas fa-magic"></i> Solution Template</h6>
+            <div class="card">
+                <div class="card-body">
+                    <small class="text-muted">Consider including:</small>
+                    <ul class="mb-0" style="font-size: 0.9rem;">
+                        <li>Immediate temporary measures</li>
+                        <li>Long-term permanent solution</li>
+                        <li>Estimated cost and timeline</li>
+                        <li>Required resources/authorities</li>
+                        <li>Safety considerations</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="row">
+            <div class="col-md-6">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-paper-plane"></i> Submit Solution
+                </button>
+            </div>
+            <div class="col-md-6">
+                <a href="{{ url_for('view_solutions', issue_id=issue.id) }}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-arrow-left"></i> Cancel
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Best Practices -->
+<div class="mobile-card">
+    <h5><i class="fas fa-star"></i> Best Practices for Solutions</h5>
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="text-primary mb-2">
+                        <i class="fas fa-bullseye fa-2x"></i>
+                    </div>
+                    <h6>Be Specific</h6>
+                    <p class="mb-0" style="font-size: 0.9rem;">Provide clear, actionable steps</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="text-success mb-2">
+                        <i class="fas fa-hand-holding-usd fa-2x"></i>
+                    </div>
+                    <h6>Consider Costs</h6>
+                    <p class="mb-0" style="font-size: 0.9rem;">Include budget estimates if possible</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="text-warning mb-2">
+                        <i class="fas fa-shield-alt fa-2x"></i>
+                    </div>
+                    <h6>Prioritize Safety</h6>
+                    <p class="mb-0" style="font-size: 0.9rem;">Ensure solutions are safe for all</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

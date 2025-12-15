@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container text-center">
+    <div class="auth-header">
+        <h1 style="font-size: 5rem; color: #ff416c;">500</h1>
+        <h2>Internal Server Error</h2>
+        <p>Something went wrong on our end. We're working to fix it.</p>
+    </div>
+
+    <div class="mt-4">
+        <div style="font-size: 4rem; margin-bottom: 2rem; color: #ff416c;">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+
+        <div class="alert alert-warning">
+            <i class="fas fa-info-circle"></i>
+            Our team has been notified about this error. Please try again later.
+        </div>
+
+        <div class="row g-3 mt-4">
+            <div class="col-md-4">
+                <button class="btn btn-outline-primary w-100" onclick="window.history.back()">
+                    <i class="fas fa-arrow-left"></i> Go Back
+                </button>
+            </div>
+            <div class="col-md-4">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary w-100">
+                    <i class="fas fa-home"></i> Go to Dashboard
+                </a>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-outline-secondary w-100" onclick="location.reload()">
+                    <i class="fas fa-sync-alt"></i> Refresh Page
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <h5>What you can do:</h5>
+            <ul class="list-unstyled text-start">
+                <li><i class="fas fa-check-circle text-success"></i> Refresh the page and try again</li>
+                <li><i class="fas fa-check-circle text-success"></i> Clear your browser cache</li>
+                <li><i class="fas fa-check-circle text-success"></i> Try again in a few minutes</li>
+                <li><i class="fas fa-check-circle text-success"></i> Contact support if problem persists</li>
+            </ul>
+        </div>
+
+        <div class="mt-4">
+            <details>
+                <summary class="btn btn-outline-info btn-sm">
+                    <i class="fas fa-bug"></i> Technical Details
+                </summary>
+                <div class="mt-2 text-start" style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
+                    <small class="text-muted">
+                        Error ID: {{ error_id if error_id else 'N/A' }}<br>
+                        Timestamp: {{ now.strftime('%Y-%m-%d %H:%M:%S') }}<br>
+                        Request URL: {{ request.url if request else 'N/A' }}
+                    </small>
+                </div>
+            </details>
+        </div>
+
+        <div class="mt-4">
+            <p class="text-muted">
+                Need immediate assistance?
+                <a href="#" style="color: #667eea; text-decoration: none;">Contact Support</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <h1><i class="fas fa-city"></i> Voice</h1>
+    <div class="user-info">
+        <span>👤 {{ current_user.full_name }}</span>
+        <span style="font-size: 0.8rem; opacity: 0.9;">(Citizen)</span>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="mobile-tabs">
+    <a href="{{ url_for('dashboard') }}" class="mobile-tab active">Home</a>
+    <a href="{{ url_for('report_issue') }}" class="mobile-tab">Report Issue</a>
+    <a href="{{ url_for('my_issues') }}" class="mobile-tab">My Issues</a>
+    <a href="{{ url_for('map_view') }}" class="mobile-tab">Map</a>
+    <a href="{{ url_for('profile') }}" class="mobile-tab">Profile</a>
+    <a href="{{ url_for('logout') }}" class="mobile-tab">Logout</a>
+</div>
+
+<!-- Welcome Card -->
+<div class="mobile-card">
+    <h3><i class="fas fa-home"></i> Welcome, {{ current_user.full_name }}!</h3>
+    <p>Report civic issues, suggest solutions, track resolutions, and help improve your community.</p>
+</div>
+
+<!-- Quick Stats -->
+<h3 class="mt-4">📊 My Statistics</h3>
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <div class="admin-stat-card">
+            <div class="admin-stat-value">{{ user_stats.total_issues }}</div>
+            <div class="admin-stat-label">My Issues</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="admin-stat-card">
+            <div class="admin-stat-value">{{ user_stats.pending_issues }}</div>
+            <div class="admin-stat-label">Pending</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="admin-stat-card">
+            <div class="admin-stat-value">{{ user_stats.resolved_issues }}</div>
+            <div class="admin-stat-label">Resolved</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="admin-stat-card">
+            <div class="admin-stat-value">{{ user_stats.total_solutions }}</div>
+            <div class="admin-stat-label">Solutions</div>
+        </div>
+    </div>
+</div>
+
+<!-- More Stats -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="card-title">{{ user_stats.accepted_solutions }}</h1>
+                <p class="card-text">Accepted Solutions</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="card-title">{{ user_stats.solution_upvotes }}</h1>
+                <p class="card-text">Solution Upvotes</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="card-title">{{ user_stats.total_issues + user_stats.total_solutions }}</h1>
+                <p class="card-text">Total Contributions</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<h3 class="mt-4">⚡ Quick Actions</h3>
+<div class="row">
+    <div class="col-md-6 mb-2">
+        <a href="{{ url_for('report_issue') }}" class="btn btn-primary w-100">
+            <i class="fas fa-edit"></i> Report New Issue
+        </a>
+    </div>
+    <div class="col-md-6 mb-2">
+        <a href="{{ url_for('view_issues') }}" class="btn btn-outline-primary w-100">
+            <i class="fas fa-eye"></i> View All Issues
+        </a>
+    </div>
+</div>
+
+<div class="row mt-2">
+    <div class="col-md-6 mb-2">
+        <a href="{{ url_for('my_issues') }}" class="btn btn-outline-info w-100">
+            <i class="fas fa-list"></i> My Issues
+        </a>
+    </div>
+    <div class="col-md-6 mb-2">
+        <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary w-100">
+            <i class="fas fa-user"></i> My Profile
+        </a>
+    </div>
+</div>
+
+<!-- Recent Issues -->
+<h3 class="mt-4">📋 Recent Issues</h3>
+{% if recent_issues %}
+    {% for issue in recent_issues %}
+    <div class="issue-card">
+        <div class="row">
+            <div class="col-8">
+                <strong>{{ SERVICE_TYPES[issue.service_type].icon }} {{ issue.title }}</strong>
+            </div>
+            <div class="col-4 text-end">
+                <small class="text-muted">{{ issue.date.strftime('%Y-%m-%d') }}</small>
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-6">
+                <span class="status-badge {{ ISSUE_STATUSES[issue.status].badge_class }}">
+                    {{ ISSUE_STATUSES[issue.status].name }}
+                </span>
+            </div>
+            <div class="col-6 text-end">
+                <small>📍 {{ issue.location[:30] }}{% if issue.location|length > 30 %}...{% endif %}</small>
+            </div>
+        </div>
+
+        <div class="mt-2">
+            <p style="color: #666; font-size: 0.9rem;">
+                {{ issue.description[:100] }}{% if issue.description|length > 100 %}...{% endif %}
+            </p>
+        </div>
+
+        <div class="mt-2">
+            <a href="{{ url_for('view_solutions', issue_id=issue.id) }}" class="btn btn-outline-info btn-sm">
+                <i class="fas fa-lightbulb"></i> View Solutions
+                {% set sol_count = issue.solutions|length %}
+                {% if sol_count > 0 %}
+                <span class="badge bg-info">{{ sol_count }}</span>
+                {% endif %}
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="alert alert-info">
+    You haven't reported any issues yet. Start by reporting one!
+    <div class="mt-2">
+        <a href="{{ url_for('report_issue') }}" class="btn btn-primary">
+            Report Your First Issue
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Popular Solutions -->
+{% if popular_solutions %}
+<h3 class="mt-4">💡 Popular Solutions</h3>
+{% for solution in popular_solutions %}
+<div class="mobile-card">
+    <div class="row">
+        <div class="col-9">
+            <h6>For: {{ solution.issue.title[:50] }}{% if solution.issue.title|length > 50 %}...{% endif %}</h6>
+            <p class="mb-2">{{ solution.description[:150] }}{% if solution.description|length > 150 %}...{% endif %}</p>
+            <div class="d-flex gap-2">
+                <span class="badge bg-success">
+                    <i class="fas fa-thumbs-up"></i> {{ solution.upvotes }}
+                </span>
+                {% if solution.is_accepted %}
+                <span class="badge bg-primary">
+                    <i class="fas fa-check-circle"></i> Accepted
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-3 text-end">
+            <a href="{{ url_for('view_solutions', issue_id=solution.issue_id) }}" class="btn btn-sm btn-outline-primary">
+                View
+            </a>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Community Tips -->
+<div class="mobile-card mt-4">
+    <h3><i class="fas fa-lightbulb"></i> Community Tips</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="alert alert-success">
+                <h6><i class="fas fa-check-circle"></i> Best Practices</h6>
+                <ul class="mb-0">
+                    <li>Include clear photos with issues</li>
+                    <li>Be specific about locations</li>
+                    <li>Suggest practical solutions</li>
+                    <li>Vote on helpful solutions</li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-rocket"></i> Get Started</h6>
+                <ul class="mb-0">
+                    <li>Report your first issue</li>
+                    <li>Suggest solutions for others</li>
+                    <li>Track issue resolution</li>
+                    <li>Provide feedback when resolved</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

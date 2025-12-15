@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-header">
+        <h2>Create Account</h2>
+        <p>Join Voice to report issues and suggest solutions</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('register') }}" class="auth-form">
+        <div class="form-group">
+            <input type="text" name="full_name" placeholder="Enter your full name" required>
+        </div>
+
+        <div class="form-group">
+            <input type="text" name="username" placeholder="Choose a username" required>
+        </div>
+
+        <div class="form-group">
+            <input type="email" name="email" placeholder="Enter your email" required>
+        </div>
+
+        <div class="form-group">
+            <input type="text" name="phone" placeholder="Phone (10-digit number, optional)">
+        </div>
+
+        <div class="form-group">
+            <input type="password" name="password" placeholder="Create password" required>
+        </div>
+
+        <div class="form-group">
+            <input type="password" name="confirm_password" placeholder="Confirm password" required>
+        </div>
+
+        <button type="submit" class="auth-button">
+            <i class="fas fa-user-plus"></i> Register
+        </button>
+
+        <div style="margin-top: 1rem;">
+            <p style="color: #666; font-size: 0.9rem;">
+                Already have an account?
+                <a href="{{ url_for('login') }}" style="color: #667eea; text-decoration: none;">
+                    Login here
+                </a>
+            </p>
+        </div>
+    </form>
+</div>
+{% endblock %}

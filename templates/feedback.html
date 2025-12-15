@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <h1><i class="fas fa-city"></i> Voice</h1>
+    <div class="user-info">
+        <span>👤 {{ current_user.full_name }}</span>
+        <span style="font-size: 0.8rem; opacity: 0.9;">(Citizen)</span>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="mobile-tabs">
+    <a href="{{ url_for('dashboard') }}" class="mobile-tab">Home</a>
+    <a href="{{ url_for('report_issue') }}" class="mobile-tab">Report Issue</a>
+    <a href="{{ url_for('my_issues') }}" class="mobile-tab active">My Issues</a>
+    <a href="{{ url_for('map_view') }}" class="mobile-tab">Map</a>
+    <a href="{{ url_for('profile') }}" class="mobile-tab">Profile</a>
+    <a href="{{ url_for('logout') }}" class="mobile-tab">Logout</a>
+</div>
+
+<!-- Main Card -->
+<div class="mobile-card">
+    <h3><i class="fas fa-star"></i> Provide Feedback</h3>
+    <p>Rate and comment on how your issue was resolved.</p>
+</div>
+
+<!-- Issue Details -->
+<div class="mobile-card">
+    <h5>Issue Details</h5>
+    <div class="row">
+        <div class="col-md-8">
+            <h6>{{ issue.title }}</h6>
+            <p class="text-muted mb-1">
+                <i class="fas fa-map-marker-alt"></i> {{ issue.location }}
+            </p>
+            <p class="mb-2">{{ issue.description[:200] }}{% if issue.description|length > 200 %}...{% endif %}</p>
+            <div class="d-flex gap-2">
+                <span class="status-badge status-done">
+                    <i class="fas fa-check-circle"></i> Resolved
+                </span>
+                <span class="status-badge {{ PRIORITY_LEVELS[issue.priority].badge_class }}">
+                    {{ PRIORITY_LEVELS[issue.priority].name }}
+                </span>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <p class="text-muted">
+                <small>Reported: {{ issue.date.strftime('%Y-%m-%d') }}</small><br>
+                <small>Resolved: {{ issue.resolved_date.strftime('%Y-%m-%d') if issue.resolved_date else 'N/A' }}</small>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback Form -->
+<div class="mobile-card">
+    <h5>Your Feedback</h5>
+    <form method="POST" action="{{ url_for('issue_feedback', issue_id=issue.id) }}">
+        <!-- Star Rating -->
+        <div class="form-group mb-4">
+            <label class="form-label">Rating (1-5 stars)</label>
+            <div class="star-rating">
+                {% for i in range(5, 0, -1) %}
+                <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}"
+                       {% if existing_feedback and existing_feedback.rating == i %}checked{% endif %}
+                       required>
+                <label for="star{{ i }}" title="{{ i }} star{{ 's' if i > 1 else '' }}">
+                    <i class="fas fa-star"></i>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Comment -->
+        <div class="form-group mb-4">
+            <label class="form-label">Comments (Optional)</label>
+            <textarea class="form-control" name="comment" rows="4"
+                      placeholder="Tell us about your experience with this issue resolution...">
+                {{ existing_feedback.comment if existing_feedback else '' }}
+            </textarea>
+            <small class="form-text text-muted">
+                Share any additional thoughts about the resolution process.
+            </small>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="row">
+            <div class="col-md-6">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-paper-plane"></i>
+                    {{ 'Update Feedback' if existing_feedback else 'Submit Feedback' }}
+                </button>
+            </div>
+            <div class="col-md-6">
+                <a href="{{ url_for('my_issues') }}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-arrow-left"></i> Back to My Issues
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Feedback Guidelines -->
+<div class="mobile-card">
+    <h5><i class="fas fa-info-circle"></i> Feedback Guidelines</h5>
+    <ul class="mb-0">
+        <li>Your feedback helps us improve our services</li>
+        <li>Rate based on how well your issue was resolved</li>
+        <li>Be specific in your comments to help us understand</li>
+        <li>Your feedback is anonymous to the public</li>
+        <li>You can update your feedback at any time</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    font-size: 2rem;
+    line-height: 2rem;
+}
+
+.star-rating input {
+    display: none;
+}
+
+.star-rating label {
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s;
+    margin-right: 5px;
+}
+
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: #ffc107;
+}
+
+.star-rating input:checked + label {
+    color: #ffc107;
+}
+
+.star-rating i {
+    font-size: 2.5rem;
+}
+
+@media (max-width: 768px) {
+    .star-rating i {
+        font-size: 2rem;
+    }
+}
+</style>
+{% endblock %}
