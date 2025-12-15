@@ -68,7 +68,7 @@ Make sure you have the following installed:
 
 ### 1️⃣ Clone the Repository
 
-    git clone https://github.com/<your-username>/voice.git
+    git clone https://github.com/gsd2503/voice.git
     cd voice
 
 ### 2️⃣ Create a Virtual Environment (Optional but Recommended)
